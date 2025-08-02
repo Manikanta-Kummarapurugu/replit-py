@@ -108,8 +108,10 @@ class ContentModerator:
             spam_flags = self._check_spam_indicators(video, frames)
             flags.extend(spam_flags)
             
-            # Determine if video is inappropriate
-            is_inappropriate = len(flags) > 0
+            # Determine if video is inappropriate (more lenient for crime scene analysis)
+            # Only flag as inappropriate if there are multiple serious flags
+            serious_flags = [f for f in flags if f in ['excessive_skin_content', 'inappropriate_filename']]
+            is_inappropriate = len(serious_flags) > 1
             
             return {
                 'is_inappropriate': is_inappropriate,
@@ -138,12 +140,12 @@ class ContentModerator:
             if video.duration and video.duration < 3:
                 flags.append('suspicious_duration')
             
-            # Check filename for inappropriate keywords
+            # Check filename for inappropriate keywords (excluding legitimate crime scene content)
             filename_lower = video.original_filename.lower()
             inappropriate_keywords = [
                 'explicit', 'xxx', 'adult', 'porn', 'sex',
-                'violence', 'gore', 'death', 'kill',
-                'hate', 'racist', 'terrorist'
+                'hate', 'racist', 'terrorist', 'gore'
+                # Removed 'violence', 'death', 'kill' as these can be legitimate crime scene content
             ]
             
             for keyword in inappropriate_keywords:
@@ -182,19 +184,11 @@ class ContentModerator:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
             
-            # Check for excessive motion blur (might indicate violence)
-            blur_score = cv2.Laplacian(gray, cv2.CV_64F).var()
-            if blur_score < 50:  # Very blurry
-                flags.append('excessive_motion_blur')
-            
             # Check for unusual color distributions (might indicate inappropriate content)
             color_flags = self._check_color_distribution(hsv)
             flags.extend(color_flags)
             
-            # Check for excessive darkness (might hide inappropriate content)
-            brightness = np.mean(gray)
-            if brightness < 30:  # Very dark
-                flags.append('excessive_darkness')
+            # Note: Removed motion blur and darkness checks as these are common in legitimate crime scene footage
             
             # Check for skin tone detection (basic)
             skin_flags = self._detect_skin_tones(hsv)
@@ -222,7 +216,7 @@ class ContentModerator:
             total_pixels = hsv_frame.shape[0] * hsv_frame.shape[1]
             red_ratio = (red_range1 + red_range2) / total_pixels
             
-            if red_ratio > 0.3:  # More than 30% red
+            if red_ratio > 0.6:  # More than 60% red (very excessive)
                 flags.append('excessive_red_content')
             
             return flags

@@ -300,7 +300,17 @@ class AIClassifier:
                     category = 'weapon_detected'
                     confidence = 0.85
             
-            # Theft/Burglary detection patterns (prioritize over other categories)
+            # Violence/Assault detection (high priority for multiple people scenarios)
+            elif self._detect_violence_patterns(detection_results, video):
+                category = 'assault'
+                confidence = 0.9
+            
+            # Vehicle crime detection (specific vehicle-related crimes)
+            elif self._detect_vehicle_crime(detection_results, video):
+                category = 'vehicle_crime'
+                confidence = 0.85
+            
+            # Theft/Burglary detection patterns (after violence detection)
             elif self._detect_theft_patterns(detection_results, video):
                 theft_confidence = self._analyze_theft_behavior(detection_results, video)
                 if theft_confidence > 0.75:  # Lowered threshold for theft
@@ -309,16 +319,6 @@ class AIClassifier:
                 elif theft_confidence > 0.5:  # More generous suspicious threshold
                     category = 'theft'  # Changed from suspicious_activity to theft
                     confidence = theft_confidence
-            
-            # Vehicle crime detection (specific vehicle-related crimes)
-            elif self._detect_vehicle_crime(detection_results, video):
-                category = 'vehicle_crime'
-                confidence = 0.85
-            
-            # Violence/Assault detection
-            elif self._detect_violence_patterns(detection_results, video):
-                category = 'assault'
-                confidence = 0.85
             
             # Burglary/Break-in detection
             elif self._detect_burglary_patterns(detection_results, video):
@@ -503,13 +503,16 @@ class AIClassifier:
             objects = detection_results['objects']
             people_count = detection_results['people_count']
             
-            # Violence indicators
+            # Enhanced violence indicators
             if people_count > 1:
-                # Multiple people in close proximity
-                if any(indicator in str(objects).lower() for indicator in ['fight', 'punch', 'kick']):
+                # Multiple people in close proximity (strong indicator of assault/fighting)
+                return True
+            elif people_count > 0:
+                # Single person with rapid movements
+                if video.duration and video.duration < 30:
                     return True
-                # Fast movements (very short duration)
-                if video.duration and video.duration < 20:
+                # Any aggressive actions detected
+                if any(indicator in str(objects).lower() for indicator in ['fight', 'punch', 'kick', 'hit', 'strike']):
                     return True
                     
             return False
