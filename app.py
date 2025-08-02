@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -34,6 +35,17 @@ db.init_app(app)
 
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Custom Jinja2 filter for JSON parsing
+@app.template_filter('from_json')
+def from_json_filter(json_str):
+    """Convert JSON string to Python object"""
+    try:
+        if json_str:
+            return json.loads(json_str)
+        return {}
+    except (json.JSONDecodeError, TypeError):
+        return {}
 
 with app.app_context():
     # Import models here so their tables are created

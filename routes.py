@@ -1,6 +1,7 @@
 import os
 import uuid
 import logging
+from datetime import datetime
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from werkzeug.utils import secure_filename
 from app import app, db
@@ -45,7 +46,8 @@ def upload_video():
         client_ip = get_client_ip()
         is_allowed, message = check_user_warnings(client_ip)
         if not is_allowed:
-            flash(message, 'error')
+            if message:
+                flash(message, 'error')
             return redirect(url_for('index'))
         
         # Check if file was uploaded
@@ -63,30 +65,34 @@ def upload_video():
             return redirect(url_for('index'))
         
         # Generate unique filename
-        filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        
-        # Save the file
-        file.save(filepath)
-        file_size = os.path.getsize(filepath)
-        
-        # Create video record
-        video = Video(
-            filename=filename,
-            original_filename=secure_filename(file.filename),
-            file_path=filepath,
-            file_size=file_size,
-            user_ip=client_ip,
-            user_agent=request.headers.get('User-Agent', '')[:500]
-        )
-        
-        db.session.add(video)
-        db.session.commit()
-        
-        # Start processing pipeline
-        process_video_pipeline(video.id)
-        
-        return redirect(url_for('upload_result', video_id=video.id))
+        if file.filename:
+            filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            
+            # Save the file
+            file.save(filepath)
+            file_size = os.path.getsize(filepath)
+            
+            # Create video record
+            video = Video(
+                filename=filename,
+                original_filename=secure_filename(file.filename),
+                file_path=filepath,
+                file_size=file_size,
+                user_ip=client_ip,
+                user_agent=request.headers.get('User-Agent', '')[:500]
+            )
+            
+            db.session.add(video)
+            db.session.commit()
+            
+            # Start processing pipeline
+            process_video_pipeline(video.id)
+            
+            return redirect(url_for('upload_result', video_id=video.id))
+        else:
+            flash('Invalid filename', 'error')
+            return redirect(url_for('index'))
         
     except Exception as e:
         logger.error(f"Error uploading video: {str(e)}")
@@ -114,7 +120,7 @@ def process_video_pipeline(video_id):
         
         # Step 4: AI classification (only for non-duplicates or canonical videos)
         video = Video.query.get(video_id)
-        if not video.is_duplicate or video.canonical_video_id is None:
+        if video and (not video.is_duplicate or video.canonical_video_id is None):
             classifier = AIClassifier()
             classifier.classify_video(video_id)
             
@@ -123,8 +129,9 @@ def process_video_pipeline(video_id):
             alert_generator.generate_alerts(video_id)
         
         # Update status
-        video.status = 'completed'
-        db.session.commit()
+        if video:
+            video.status = 'completed'
+            db.session.commit()
         
     except Exception as e:
         logger.error(f"Error processing video {video_id}: {str(e)}")
@@ -142,11 +149,13 @@ def handle_inappropriate_content(video_id):
     # Update warning count for user
     warning = UserWarning.query.filter_by(user_ip=video.user_ip).first()
     if not warning:
-        warning = UserWarning(user_ip=video.user_ip, warning_count=1)
+        warning = UserWarning()
+        warning.user_ip = video.user_ip
+        warning.warning_count = 1
         db.session.add(warning)
     else:
         warning.warning_count += 1
-        warning.last_warning = db.func.now()
+        warning.last_warning = datetime.now()
     
     # Ban user if they exceed warning limit
     if warning.warning_count >= Config.MAX_WARNINGS:

@@ -296,7 +296,8 @@ class ContentModerator:
                 
                 # Calculate frame difference
                 diff = cv2.absdiff(gray1, gray2)
-                motion_pixels = cv2.countNonZero(diff > 30)  # Threshold for motion
+                threshold_mask = (diff > 30).astype(np.uint8)
+                motion_pixels = cv2.countNonZero(threshold_mask)  # Threshold for motion
                 
                 total_pixels = gray1.shape[0] * gray1.shape[1]
                 motion_ratio = motion_pixels / total_pixels
