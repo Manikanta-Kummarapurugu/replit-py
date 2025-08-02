@@ -19,11 +19,19 @@ class Config:
     
     # Crime scene categories
     CRIME_CATEGORIES = {
-        'urgent_crime': 'Urgent Crime',
-        'people_crowd': 'People/Crowd',
-        'vehicle_traffic': 'Vehicle/Traffic',
-        'property_damage': 'Property Damage',
-        'other_informational': 'Other/Informational'
+        'theft': 'Theft/Stealing',
+        'burglary': 'Burglary/Break-in',
+        'vehicle_crime': 'Vehicle Crime',
+        'assault': 'Assault/Violence',
+        'robbery': 'Armed Robbery',
+        'vandalism': 'Vandalism/Property Damage',
+        'suspicious_activity': 'Suspicious Activity',
+        'drug_activity': 'Drug Related Activity',
+        'weapon_detected': 'Weapon Present',
+        'crowd_disturbance': 'Crowd/Disturbance',
+        'traffic_violation': 'Traffic Violation',
+        'other_crime': 'Other Criminal Activity',
+        'no_crime': 'No Crime Detected'
     }
     
     # Content moderation flags

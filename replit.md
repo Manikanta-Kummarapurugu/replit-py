@@ -2,7 +2,7 @@
 
 ## Overview
 
-KrimeWatch is a Flask-based web application that provides automated analysis of crime scene videos using artificial intelligence. The system processes uploaded videos through a multi-agent architecture, detecting duplicates, classifying content, moderating inappropriate material, and generating alerts for law enforcement. The application is designed to help streamline the analysis of crime scene footage by automating the initial triage and classification process.
+KrimeWatch is a Flask-based web application that provides automated analysis of crime scene videos using artificial intelligence. The system processes uploaded videos through a sophisticated multi-agent architecture, detecting duplicates, classifying content into specific crime categories, moderating inappropriate material, and generating targeted alerts for law enforcement. The application features enhanced crime detection capabilities designed to accurately identify theft, burglary, assault, vehicle crimes, and other criminal activities for real-world law enforcement applications.
 
 ## User Preferences
 
@@ -32,9 +32,11 @@ The system implements a sequential processing pipeline with four main agents:
    - Implements hash-based similarity comparison with 0.85 threshold
 
 3. **AI Classifier Agent** (`services/ai_classifier.py`)
-   - Classifies videos into predefined crime categories
-   - Uses OpenCV DNN module with YOLO for object detection
-   - Implements confidence thresholds for classification accuracy
+   - Classifies videos into 13 specific crime categories including theft, burglary, robbery, assault, weapon detection, vehicle crime, vandalism, drug activity, crowd disturbance, suspicious activity, and traffic violations
+   - Uses sophisticated behavioral pattern analysis for accurate crime detection
+   - Implements context-aware classification considering time, duration, object combinations, and scene analysis
+   - Features specialized detection methods for theft patterns (bag theft from cars), vehicle crimes, and violence indicators
+   - Implements confidence thresholds and multi-factor analysis for classification accuracy
 
 4. **Content Moderator Agent** (`services/content_moderator.py`)
    - Detects inappropriate content and flags violations

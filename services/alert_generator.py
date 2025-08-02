@@ -28,14 +28,20 @@ class AlertGenerator:
             alerts_generated = []
             
             # Generate alerts based on classification
-            if video.classification == 'urgent_crime':
+            if video.classification in ['theft', 'burglary', 'robbery', 'assault', 'weapon_detected']:
                 alerts_generated.extend(self._generate_urgent_crime_alerts(video))
-            elif video.classification == 'people_crowd':
-                alerts_generated.extend(self._generate_people_alerts(video))
-            elif video.classification == 'vehicle_traffic':
+            elif video.classification == 'vehicle_crime':
+                alerts_generated.extend(self._generate_vehicle_crime_alerts(video))
+            elif video.classification == 'vandalism':
+                alerts_generated.extend(self._generate_vandalism_alerts(video))
+            elif video.classification == 'drug_activity':
+                alerts_generated.extend(self._generate_drug_alerts(video))
+            elif video.classification == 'crowd_disturbance':
+                alerts_generated.extend(self._generate_crowd_alerts(video))
+            elif video.classification == 'suspicious_activity':
+                alerts_generated.extend(self._generate_suspicious_alerts(video))
+            elif video.classification == 'traffic_violation':
                 alerts_generated.extend(self._generate_traffic_alerts(video))
-            elif video.classification == 'property_damage':
-                alerts_generated.extend(self._generate_property_alerts(video))
             
             # Log alerts in database
             for alert_data in alerts_generated:
@@ -71,20 +77,29 @@ class AlertGenerator:
             if video.confidence_score >= self.urgent_threshold:
                 # Generate police alert
                 police_alert = {
-                    'type': 'urgent_crime',
+                    'type': video.classification,
                     'recipient': 'police',
                     'message': self._create_police_alert_message(video)
                 }
                 alerts.append(police_alert)
                 
-                # Generate emergency services alert if needed
-                if 'violence' in str(video.detected_objects).lower():
+                # Generate emergency services alert for violent crimes
+                if video.classification in ['assault', 'robbery', 'weapon_detected']:
                     emergency_alert = {
                         'type': 'emergency_medical',
                         'recipient': 'emergency_services',
                         'message': self._create_emergency_alert_message(video)
                     }
                     alerts.append(emergency_alert)
+                    
+                # Generate detective unit alert for theft/burglary
+                if video.classification in ['theft', 'burglary']:
+                    detective_alert = {
+                        'type': 'detective_investigation',
+                        'recipient': 'detective_unit',
+                        'message': self._create_detective_alert_message(video)
+                    }
+                    alerts.append(detective_alert)
             
             return alerts
             
@@ -139,22 +154,94 @@ class AlertGenerator:
             logger.error(f"Error generating traffic alerts: {str(e)}")
             return []
     
-    def _generate_property_alerts(self, video):
-        """Generate alerts for property damage incidents"""
+    def _generate_vehicle_crime_alerts(self, video):
+        """Generate alerts for vehicle crime incidents"""
         alerts = []
         
         try:
-            property_alert = {
-                'type': 'property_damage',
-                'recipient': 'property_management',
-                'message': self._create_property_alert_message(video)
+            vehicle_alert = {
+                'type': 'vehicle_crime',
+                'recipient': 'police',
+                'message': self._create_vehicle_crime_alert_message(video)
             }
-            alerts.append(property_alert)
+            alerts.append(vehicle_alert)
             
             return alerts
             
         except Exception as e:
-            logger.error(f"Error generating property alerts: {str(e)}")
+            logger.error(f"Error generating vehicle crime alerts: {str(e)}")
+            return []
+    
+    def _generate_vandalism_alerts(self, video):
+        """Generate alerts for vandalism incidents"""
+        alerts = []
+        
+        try:
+            vandalism_alert = {
+                'type': 'vandalism',
+                'recipient': 'property_management',
+                'message': self._create_vandalism_alert_message(video)
+            }
+            alerts.append(vandalism_alert)
+            
+            return alerts
+            
+        except Exception as e:
+            logger.error(f"Error generating vandalism alerts: {str(e)}")
+            return []
+    
+    def _generate_drug_alerts(self, video):
+        """Generate alerts for drug activity"""
+        alerts = []
+        
+        try:
+            drug_alert = {
+                'type': 'drug_activity',
+                'recipient': 'narcotics_unit',
+                'message': self._create_drug_alert_message(video)
+            }
+            alerts.append(drug_alert)
+            
+            return alerts
+            
+        except Exception as e:
+            logger.error(f"Error generating drug alerts: {str(e)}")
+            return []
+    
+    def _generate_crowd_alerts(self, video):
+        """Generate alerts for crowd disturbances"""
+        alerts = []
+        
+        try:
+            crowd_alert = {
+                'type': 'crowd_disturbance',
+                'recipient': 'riot_control',
+                'message': self._create_crowd_disturbance_alert_message(video)
+            }
+            alerts.append(crowd_alert)
+            
+            return alerts
+            
+        except Exception as e:
+            logger.error(f"Error generating crowd alerts: {str(e)}")
+            return []
+    
+    def _generate_suspicious_alerts(self, video):
+        """Generate alerts for suspicious activity"""
+        alerts = []
+        
+        try:
+            suspicious_alert = {
+                'type': 'suspicious_activity',
+                'recipient': 'patrol_unit',
+                'message': self._create_suspicious_alert_message(video)
+            }
+            alerts.append(suspicious_alert)
+            
+            return alerts
+            
+        except Exception as e:
+            logger.error(f"Error generating suspicious alerts: {str(e)}")
             return []
     
     def _create_police_alert_message(self, video):
@@ -275,27 +362,168 @@ Please assess traffic conditions and implement appropriate measures.
             logger.error(f"Error creating traffic alert message: {str(e)}")
             return f"Traffic incident detected - Video ID: {video.id}"
     
-    def _create_property_alert_message(self, video):
-        """Create property damage alert message"""
+    def _create_detective_alert_message(self, video):
+        """Create detective unit alert message"""
         try:
             message = f"""
-PROPERTY DAMAGE ALERT - KrimeWatch System
+DETECTIVE INVESTIGATION ALERT - KrimeWatch System
 
-Property Damage Incident Detected
+{video.classification.replace('_', ' ').title()} Case Detected
+Confidence Level: {video.confidence_score:.2f}
 Timestamp: {video.upload_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}
 Location: {self._format_location(video)}
 
-Video ID: {video.id}
-Property Assessment Required
+Case Details:
+- Crime Type: {video.classification.replace('_', ' ').title()}
+- People Involved: {video.detected_people_count or 'Unknown'}
+- Evidence Objects: {video.detected_objects or 'Processing...'}
 
-Please investigate potential property damage or vandalism.
+Video ID: {video.id}
+Investigation Priority: HIGH
+
+This case requires detective investigation and evidence collection.
             """.strip()
             
             return message
             
         except Exception as e:
-            logger.error(f"Error creating property alert message: {str(e)}")
-            return f"Property damage detected - Video ID: {video.id}"
+            logger.error(f"Error creating detective alert message: {str(e)}")
+            return f"Detective investigation required - Video ID: {video.id}"
+    
+    def _create_vehicle_crime_alert_message(self, video):
+        """Create vehicle crime alert message"""
+        try:
+            message = f"""
+VEHICLE CRIME ALERT - KrimeWatch System
+
+Vehicle Crime Detected
+Confidence Level: {video.confidence_score:.2f}
+Timestamp: {video.upload_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}
+Location: {self._format_location(video)}
+
+Incident Details:
+- People Detected: {video.detected_people_count or 'Unknown'}
+- Objects: {video.detected_objects or 'Processing...'}
+
+Video ID: {video.id}
+Response Required: IMMEDIATE
+
+Possible vehicle break-in, theft, or vandalism detected.
+            """.strip()
+            
+            return message
+            
+        except Exception as e:
+            logger.error(f"Error creating vehicle crime alert message: {str(e)}")
+            return f"Vehicle crime detected - Video ID: {video.id}"
+    
+    def _create_vandalism_alert_message(self, video):
+        """Create vandalism alert message"""
+        try:
+            message = f"""
+VANDALISM ALERT - KrimeWatch System
+
+Property Vandalism Detected
+Confidence Level: {video.confidence_score:.2f}
+Timestamp: {video.upload_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}
+Location: {self._format_location(video)}
+
+Incident Details:
+- People Involved: {video.detected_people_count or 'Unknown'}
+- Damage Assessment Needed
+
+Video ID: {video.id}
+Property Management Required
+
+Please assess and document property damage for insurance claims.
+            """.strip()
+            
+            return message
+            
+        except Exception as e:
+            logger.error(f"Error creating vandalism alert message: {str(e)}")
+            return f"Vandalism detected - Video ID: {video.id}"
+    
+    def _create_drug_alert_message(self, video):
+        """Create drug activity alert message"""
+        try:
+            message = f"""
+DRUG ACTIVITY ALERT - KrimeWatch System
+
+Suspected Drug Activity Detected
+Confidence Level: {video.confidence_score:.2f}
+Timestamp: {video.upload_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}
+Location: {self._format_location(video)}
+
+Activity Details:
+- People Involved: {video.detected_people_count or 'Unknown'}
+- Suspicious Behavior Patterns Detected
+
+Video ID: {video.id}
+Narcotics Unit Response Required
+
+Surveillance and investigation recommended.
+            """.strip()
+            
+            return message
+            
+        except Exception as e:
+            logger.error(f"Error creating drug alert message: {str(e)}")
+            return f"Drug activity detected - Video ID: {video.id}"
+    
+    def _create_crowd_disturbance_alert_message(self, video):
+        """Create crowd disturbance alert message"""
+        try:
+            message = f"""
+CROWD DISTURBANCE ALERT - KrimeWatch System
+
+Large Crowd Disturbance Detected
+Confidence Level: {video.confidence_score:.2f}
+Timestamp: {video.upload_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}
+Location: {self._format_location(video)}
+
+Crowd Details:
+- Estimated People: {video.detected_people_count or 'Multiple'}
+- Disturbance Level: Requires Attention
+
+Video ID: {video.id}
+Riot Control Assessment Required
+
+Monitor situation and deploy crowd control resources as needed.
+            """.strip()
+            
+            return message
+            
+        except Exception as e:
+            logger.error(f"Error creating crowd disturbance alert message: {str(e)}")
+            return f"Crowd disturbance detected - Video ID: {video.id}"
+    
+    def _create_suspicious_alert_message(self, video):
+        """Create suspicious activity alert message"""
+        try:
+            message = f"""
+SUSPICIOUS ACTIVITY ALERT - KrimeWatch System
+
+Suspicious Behavior Detected
+Confidence Level: {video.confidence_score:.2f}
+Timestamp: {video.upload_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}
+Location: {self._format_location(video)}
+
+Activity Details:
+- People Involved: {video.detected_people_count or 'Unknown'}
+- Behavior Pattern: Requires Investigation
+
+Video ID: {video.id}
+Patrol Unit Response Recommended
+
+Increased surveillance and patrol presence advised.
+            """.strip()
+            
+            return message
+            
+        except Exception as e:
+            logger.error(f"Error creating suspicious alert message: {str(e)}")
+            return f"Suspicious activity detected - Video ID: {video.id}"
     
     def _format_location(self, video):
         """Format location information for alerts"""

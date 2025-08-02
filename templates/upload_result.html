@@ -111,10 +111,13 @@
                                     <div class="me-4">
                                         <h5 class="mb-1">Category:</h5>
                                         <span class="badge 
-                                            {% if video.classification == 'urgent_crime' %}bg-danger
-                                            {% elif video.classification == 'people_crowd' %}bg-primary
-                                            {% elif video.classification == 'vehicle_traffic' %}bg-warning
-                                            {% elif video.classification == 'property_damage' %}bg-info
+                                            {% if video.classification in ['theft', 'burglary', 'robbery', 'assault', 'weapon_detected'] %}bg-danger
+                                            {% elif video.classification == 'vehicle_crime' %}bg-warning
+                                            {% elif video.classification in ['vandalism', 'drug_activity'] %}bg-warning
+                                            {% elif video.classification == 'crowd_disturbance' %}bg-info
+                                            {% elif video.classification == 'suspicious_activity' %}bg-secondary
+                                            {% elif video.classification == 'traffic_violation' %}bg-primary
+                                            {% elif video.classification == 'no_crime' %}bg-success
                                             {% else %}bg-secondary
                                             {% endif %} fs-6">
                                             {{ video.classification.replace('_', ' ')|title }}
@@ -155,15 +158,40 @@
                                 {% endif %}
                             </div>
                             <div class="col-md-4">
-                                {% if video.classification == 'urgent_crime' %}
+                                {% if video.classification in ['theft', 'burglary', 'robbery', 'assault', 'weapon_detected'] %}
                                 <div class="alert alert-danger">
-                                    <h6><i class="fas fa-exclamation-triangle me-2"></i>URGENT</h6>
-                                    <p class="mb-0">Emergency services have been automatically notified.</p>
+                                    <h6><i class="fas fa-exclamation-triangle me-2"></i>URGENT CRIME</h6>
+                                    <p class="mb-0">Police and emergency services have been automatically notified.</p>
                                 </div>
-                                {% elif video.classification == 'people_crowd' %}
+                                {% elif video.classification == 'vehicle_crime' %}
+                                <div class="alert alert-warning">
+                                    <h6><i class="fas fa-car me-2"></i>Vehicle Crime Alert</h6>
+                                    <p class="mb-0">Police have been notified of potential vehicle crime.</p>
+                                </div>
+                                {% elif video.classification in ['vandalism', 'drug_activity'] %}
+                                <div class="alert alert-warning">
+                                    <h6><i class="fas fa-shield-alt me-2"></i>Crime Alert</h6>
+                                    <p class="mb-0">Relevant law enforcement units have been notified.</p>
+                                </div>
+                                {% elif video.classification == 'crowd_disturbance' %}
                                 <div class="alert alert-info">
-                                    <h6><i class="fas fa-users me-2"></i>Community Alert</h6>
-                                    <p class="mb-0">Relevant community services have been notified.</p>
+                                    <h6><i class="fas fa-users me-2"></i>Crowd Alert</h6>
+                                    <p class="mb-0">Riot control and patrol units have been notified.</p>
+                                </div>
+                                {% elif video.classification == 'suspicious_activity' %}
+                                <div class="alert alert-secondary">
+                                    <h6><i class="fas fa-eye me-2"></i>Surveillance Alert</h6>
+                                    <p class="mb-0">Patrol units have been notified for increased surveillance.</p>
+                                </div>
+                                {% elif video.classification == 'traffic_violation' %}
+                                <div class="alert alert-primary">
+                                    <h6><i class="fas fa-traffic-light me-2"></i>Traffic Alert</h6>
+                                    <p class="mb-0">Traffic enforcement has been notified.</p>
+                                </div>
+                                {% elif video.classification == 'no_crime' %}
+                                <div class="alert alert-success">
+                                    <h6><i class="fas fa-check-circle me-2"></i>Safe Content</h6>
+                                    <p class="mb-0">No criminal activity detected in this video.</p>
                                 </div>
                                 {% endif %}
                             </div>

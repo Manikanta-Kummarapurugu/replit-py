@@ -269,43 +269,83 @@ class AIClassifier:
             return results
     
     def _classify_content(self, detection_results, video):
-        """Classify video content based on detection results"""
-        category = 'other_informational'
+        """Classify video content based on detection results for crime detection"""
+        category = 'no_crime'
         confidence = 0.5
         
         try:
-            # Classification logic based on detected objects and context
+            # Enhanced classification logic for real crime detection
             people_count = detection_results['people_count']
             objects = detection_results['objects']
             vehicles = detection_results['vehicles']
             weapons = detection_results['weapons']
+            suspicious_objects = detection_results['suspicious_objects']
             
-            # High-priority classification: Urgent Crime
-            if weapons or 'violence' in str(objects).lower():
-                category = 'urgent_crime'
-                confidence = 0.9
+            # Weapon detection - highest priority
+            if weapons:
+                if any(weapon in ['gun', 'pistol', 'rifle'] for weapon in weapons):
+                    category = 'robbery'
+                    confidence = 0.95
+                elif any(weapon in ['knife', 'blade'] for weapon in weapons):
+                    category = 'assault'
+                    confidence = 0.9
+                else:
+                    category = 'weapon_detected'
+                    confidence = 0.85
             
-            # People/Crowd classification
-            elif people_count > 5:
-                category = 'people_crowd'
+            # Theft/Burglary detection patterns
+            elif self._detect_theft_patterns(detection_results, video):
+                theft_confidence = self._analyze_theft_behavior(detection_results, video)
+                if theft_confidence > 0.8:
+                    category = 'theft'
+                    confidence = theft_confidence
+                elif theft_confidence > 0.6:
+                    category = 'suspicious_activity'
+                    confidence = theft_confidence
+            
+            # Vehicle crime detection
+            elif self._detect_vehicle_crime(detection_results, video):
+                category = 'vehicle_crime'
                 confidence = 0.8
-            elif people_count > 0:
-                category = 'people_crowd'
-                confidence = 0.7
             
-            # Vehicle/Traffic classification
-            elif vehicles or any(v in objects for v in ['car', 'truck', 'bus', 'motorcycle']):
-                category = 'vehicle_traffic'
+            # Violence/Assault detection
+            elif self._detect_violence_patterns(detection_results, video):
+                category = 'assault'
+                confidence = 0.85
+            
+            # Burglary/Break-in detection
+            elif self._detect_burglary_patterns(detection_results, video):
+                category = 'burglary'
+                confidence = 0.8
+            
+            # Drug activity detection
+            elif self._detect_drug_activity(detection_results, video):
+                category = 'drug_activity'
                 confidence = 0.75
             
-            # Property damage classification (basic heuristics)
-            elif any(keyword in str(objects).lower() for keyword in ['damage', 'break', 'fire']):
-                category = 'property_damage'
+            # Vandalism detection
+            elif self._detect_vandalism(detection_results, video):
+                category = 'vandalism'
                 confidence = 0.7
             
-            # Scene analysis for better classification
-            scene_confidence = self._analyze_scene_context(detection_results, video)
-            confidence = max(confidence, scene_confidence)
+            # Large crowd disturbance
+            elif people_count > 10:
+                category = 'crowd_disturbance'
+                confidence = 0.8
+            
+            # Traffic violations
+            elif self._detect_traffic_violations(detection_results, video):
+                category = 'traffic_violation'
+                confidence = 0.7
+            
+            # General suspicious activity
+            elif people_count > 0 and self._detect_suspicious_behavior(detection_results, video):
+                category = 'suspicious_activity'
+                confidence = 0.6
+            
+            # Enhance confidence with scene context
+            scene_confidence = self._analyze_crime_scene_context(detection_results, video)
+            confidence = min(max(confidence, scene_confidence), 1.0)
             
             return {
                 'category': category,
@@ -317,34 +357,258 @@ class AIClassifier:
         except Exception as e:
             logger.error(f"Error classifying content: {str(e)}")
             return {
-                'category': 'other_informational',
+                'category': 'no_crime',
                 'confidence': 0.5,
                 'detected_objects': {},
                 'people_count': 0
             }
     
-    def _analyze_scene_context(self, detection_results, video):
-        """Analyze scene context for better classification"""
-        confidence = 0.5
+    def _detect_theft_patterns(self, detection_results, video):
+        """Detect theft/stealing behavior patterns"""
+        try:
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            
+            # Common theft indicators
+            theft_indicators = [
+                'bag', 'purse', 'backpack', 'handbag', 'suitcase',
+                'car', 'bicycle', 'laptop', 'phone', 'wallet'
+            ]
+            
+            # Check for theft-related objects and people
+            if people_count > 0 and any(item in objects for item in theft_indicators):
+                return True
+            
+            # Check for quick movements (short duration videos)
+            if video.duration and video.duration < 60 and people_count > 0:
+                return True
+                
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting theft patterns: {str(e)}")
+            return False
+    
+    def _analyze_theft_behavior(self, detection_results, video):
+        """Analyze behavioral patterns for theft confidence"""
+        confidence = 0.6
         
         try:
-            # Time-based analysis (night scenes might be more suspicious)
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            
+            # Multiple people with valuable objects
+            if people_count > 1 and any(item in objects for item in ['bag', 'purse', 'car']):
+                confidence += 0.2
+            
+            # Night time activity
             if video.upload_timestamp.hour < 6 or video.upload_timestamp.hour > 22:
                 confidence += 0.1
             
-            # Duration analysis (very short videos might be urgent)
+            # Quick actions (short videos)
             if video.duration and video.duration < 30:
                 confidence += 0.1
-            
-            # Object combination analysis
-            objects = detection_results['objects']
-            if 'person' in objects and len(detection_results['vehicles']) > 0:
-                confidence += 0.1  # People + vehicles might indicate traffic incident
             
             return min(confidence, 1.0)
             
         except Exception as e:
-            logger.error(f"Error analyzing scene context: {str(e)}")
+            logger.error(f"Error analyzing theft behavior: {str(e)}")
+            return 0.6
+    
+    def _detect_vehicle_crime(self, detection_results, video):
+        """Detect vehicle-related crimes"""
+        try:
+            objects = detection_results['objects']
+            vehicles = detection_results['vehicles']
+            people_count = detection_results['people_count']
+            
+            # Vehicle break-in indicators
+            if vehicles and people_count > 0:
+                # People near vehicles with potential tools
+                if any(tool in objects for tool in ['tool', 'crowbar', 'hammer']):
+                    return True
+                # Multiple people around vehicles
+                if people_count > 1:
+                    return True
+                    
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting vehicle crime: {str(e)}")
+            return False
+    
+    def _detect_violence_patterns(self, detection_results, video):
+        """Detect violence/assault patterns"""
+        try:
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            
+            # Violence indicators
+            if people_count > 1:
+                # Multiple people in close proximity
+                if any(indicator in str(objects).lower() for indicator in ['fight', 'punch', 'kick']):
+                    return True
+                # Fast movements (very short duration)
+                if video.duration and video.duration < 20:
+                    return True
+                    
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting violence patterns: {str(e)}")
+            return False
+    
+    def _detect_burglary_patterns(self, detection_results, video):
+        """Detect burglary/break-in patterns"""
+        try:
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            
+            # Burglary indicators
+            burglary_tools = ['crowbar', 'hammer', 'tool', 'ladder']
+            entry_objects = ['door', 'window', 'fence', 'gate']
+            
+            if people_count > 0:
+                # People with tools near entry points
+                if (any(tool in objects for tool in burglary_tools) and 
+                    any(entry in objects for entry in entry_objects)):
+                    return True
+                # Night time activity near buildings
+                if (video.upload_timestamp.hour < 6 or video.upload_timestamp.hour > 22):
+                    return True
+                    
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting burglary patterns: {str(e)}")
+            return False
+    
+    def _detect_drug_activity(self, detection_results, video):
+        """Detect drug-related activity"""
+        try:
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            
+            # Drug activity indicators
+            if people_count > 1:
+                # Multiple people in suspicious gatherings
+                if video.duration and video.duration < 120:  # Short interactions
+                    return True
+                # Suspicious objects
+                if any(item in objects for item in ['bottle', 'bag', 'package']):
+                    return True
+                    
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting drug activity: {str(e)}")
+            return False
+    
+    def _detect_vandalism(self, detection_results, video):
+        """Detect vandalism/property damage"""
+        try:
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            
+            # Vandalism indicators
+            vandalism_tools = ['spray', 'paint', 'marker', 'hammer', 'rock']
+            targets = ['wall', 'car', 'window', 'building', 'sign']
+            
+            if people_count > 0:
+                if (any(tool in objects for tool in vandalism_tools) and 
+                    any(target in objects for target in targets)):
+                    return True
+                    
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting vandalism: {str(e)}")
+            return False
+    
+    def _detect_traffic_violations(self, detection_results, video):
+        """Detect traffic violations"""
+        try:
+            vehicles = detection_results['vehicles']
+            objects = detection_results['objects']
+            
+            # Traffic violation indicators
+            if vehicles:
+                # Vehicles in inappropriate places
+                if any(location in objects for location in ['sidewalk', 'crosswalk', 'playground']):
+                    return True
+                # Multiple vehicles suggesting racing/reckless driving
+                if len(vehicles) > 2:
+                    return True
+                    
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting traffic violations: {str(e)}")
+            return False
+    
+    def _detect_suspicious_behavior(self, detection_results, video):
+        """Detect general suspicious behavior"""
+        try:
+            people_count = detection_results['people_count']
+            objects = detection_results['objects']
+            
+            # General suspicious indicators
+            if people_count > 0:
+                # Loitering (long duration videos with minimal action)
+                if video.duration and video.duration > 300:  # 5 minutes
+                    return True
+                # Night time activity
+                if video.upload_timestamp.hour < 6 or video.upload_timestamp.hour > 22:
+                    return True
+                # Multiple people in unusual places
+                if people_count > 3:
+                    return True
+                    
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting suspicious behavior: {str(e)}")
+            return False
+    
+    def _analyze_crime_scene_context(self, detection_results, video):
+        """Enhanced crime scene context analysis"""
+        confidence = 0.5
+        
+        try:
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            vehicles = detection_results['vehicles']
+            
+            # Time-based risk factors
+            if video.upload_timestamp.hour < 6 or video.upload_timestamp.hour > 22:
+                confidence += 0.15  # Night time increases crime likelihood
+            
+            # Duration analysis
+            if video.duration:
+                if video.duration < 30:  # Quick actions often criminal
+                    confidence += 0.1
+                elif video.duration > 300:  # Loitering behavior
+                    confidence += 0.05
+            
+            # Multiple people interactions
+            if people_count > 1:
+                confidence += 0.1
+                if people_count > 3:
+                    confidence += 0.1  # Crowds can indicate disturbances
+            
+            # Vehicle presence with people
+            if vehicles and people_count > 0:
+                confidence += 0.1  # Vehicle crimes are common
+            
+            # Object combinations suggesting crime
+            crime_objects = ['bag', 'tool', 'weapon', 'car', 'door', 'window']
+            object_matches = sum(1 for obj in crime_objects if obj in objects)
+            confidence += min(object_matches * 0.05, 0.2)
+            
+            return min(confidence, 1.0)
+            
+        except Exception as e:
+            logger.error(f"Error analyzing crime scene context: {str(e)}")
             return 0.5
     
     def _log_processing(self, video_id, step, status, message, processing_time=None):
