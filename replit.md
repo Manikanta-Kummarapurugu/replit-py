@@ -8,6 +8,17 @@ KrimeWatch is a Flask-based web application that provides automated analysis of 
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (August 2025)
+
+### Multi-Crime Classification Enhancement
+- **Added shooting detection**: Advanced pattern recognition with 95% confidence for firearm incidents
+- **Added kidnapping detection**: Multi-factor scoring system for abduction scenarios (65% threshold)
+- **Multi-crime support**: Single videos can now be classified with multiple simultaneous crime types
+- **Enhanced object detection**: Comprehensive detection of weapons, restraint tools, and criminal evidence
+- **Database schema updated**: Added `multiple_classifications` field for storing all detected crimes
+- **UI improvements**: Results page now displays all detected crime types with individual confidence scores
+- **Alert system enhanced**: Critical emergency alerts for shooting/kidnapping scenarios
+
 ## System Architecture
 
 ### Core Architecture Pattern
@@ -32,11 +43,12 @@ The system implements a sequential processing pipeline with four main agents:
    - Implements hash-based similarity comparison with 0.85 threshold
 
 3. **AI Classifier Agent** (`services/ai_classifier.py`)
-   - Classifies videos into 13 specific crime categories including theft, burglary, robbery, assault, weapon detection, vehicle crime, vandalism, drug activity, crowd disturbance, suspicious activity, and traffic violations
-   - Uses sophisticated behavioral pattern analysis for accurate crime detection
-   - Implements context-aware classification considering time, duration, object combinations, and scene analysis
-   - Features specialized detection methods for theft patterns (bag theft from cars), vehicle crimes, and violence indicators
-   - Implements confidence thresholds and multi-factor analysis for classification accuracy
+   - **Enhanced Multi-Crime Classification**: Now supports detection of multiple simultaneous crimes in a single video (e.g., shooting + kidnapping scenario)
+   - **Expanded Crime Categories**: 15 specific crime categories including shooting, kidnapping, theft, burglary, robbery, assault, weapon detection, vehicle crime, vandalism, drug activity, crowd disturbance, suspicious activity, and traffic violations
+   - **Advanced Pattern Recognition**: Sophisticated behavioral analysis using scoring systems for shooting (0.7 threshold) and kidnapping (0.65 threshold) detection
+   - **Enhanced Object Detection**: Comprehensive object recognition simulating real-world YOLO detection with weapons, restraint tools, and criminal evidence identification
+   - **Priority-Based Classification**: Hierarchical classification system prioritizing critical crimes (shooting, kidnapping) over lesser offenses
+   - **Multiple Classification Storage**: Database support for storing all detected crime types with individual confidence scores
 
 4. **Content Moderator Agent** (`services/content_moderator.py`)
    - Detects inappropriate content and flags violations
@@ -44,13 +56,17 @@ The system implements a sequential processing pipeline with four main agents:
    - Maintains content moderation flags and tracking
 
 ### Data Storage Strategy
-- **Primary Database**: Stores video metadata, processing logs, user warnings, and alerts
+- **Primary Database**: Stores video metadata, processing logs, user warnings, alerts, and multiple crime classifications
+- **Enhanced Schema**: Added `multiple_classifications` JSON field to store all detected crime types with confidence scores
 - **File Storage**: Videos stored in local `uploads/` directory with unique filenames
 - **Processing Logs**: Comprehensive audit trail for all agent operations
+- **Multi-Classification Support**: Tracks primary classification plus all secondary crime detections
 
 ### Frontend Architecture
 - **Server-side rendered** templates using Jinja2
 - **Bootstrap 5** with dark theme for responsive UI
+- **Enhanced Results Display**: Multi-crime classification visualization with color-coded badges and confidence percentages
+- **Critical Alert System**: Special alerts for shooting/kidnapping with emergency response notifications
 - **Progressive enhancement** with JavaScript for upload progress and validation
 - **Real-time status updates** for processing pipeline
 

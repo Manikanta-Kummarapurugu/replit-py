@@ -31,6 +31,7 @@ class Video(db.Model):
     # Classification results
     classification = Column(String(100), nullable=True)
     confidence_score = Column(Float, nullable=True)
+    multiple_classifications = Column(Text, nullable=True)  # JSON string for multiple crimes
     detected_objects = Column(Text, nullable=True)  # JSON string
     detected_people_count = Column(Integer, nullable=True)
     

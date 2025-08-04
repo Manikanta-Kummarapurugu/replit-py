@@ -187,11 +187,21 @@ def video_status(video_id):
     """API endpoint to check video processing status"""
     video = Video.query.get_or_404(video_id)
     
+    # Parse multiple classifications if available
+    multiple_classifications = []
+    if video.multiple_classifications:
+        try:
+            import json
+            multiple_classifications = json.loads(video.multiple_classifications)
+        except:
+            multiple_classifications = []
+    
     return jsonify({
         'id': video.id,
         'status': video.status,
         'classification': video.classification,
         'confidence_score': video.confidence_score,
+        'multiple_classifications': multiple_classifications,
         'is_duplicate': video.is_duplicate,
         'detected_people_count': video.detected_people_count,
         'is_inappropriate': video.is_inappropriate

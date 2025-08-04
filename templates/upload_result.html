@@ -156,9 +156,35 @@
                                     </div>
                                 </div>
                                 {% endif %}
+
+                                <!-- Multiple Classifications Section -->
+                                {% set multiple_classifications = video.multiple_classifications|from_json if video.multiple_classifications else [] %}
+                                {% if multiple_classifications %}
+                                <div class="mb-3">
+                                    <h6><i class="fas fa-list-check me-2"></i>All Detected Crime Types:</h6>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% for classification in multiple_classifications %}
+                                            <span class="badge 
+                                                {% if classification.type in ['shooting', 'kidnapping', 'robbery', 'assault', 'weapon_detected'] %}bg-danger
+                                                {% elif classification.type in ['theft', 'burglary'] %}bg-warning
+                                                {% elif classification.type == 'vehicle_crime' %}bg-info
+                                                {% elif classification.type in ['vandalism', 'drug_activity'] %}bg-secondary
+                                                {% else %}bg-light text-dark
+                                                {% endif %}">
+                                                {{ classification.type.replace('_', ' ')|title }} ({{ (classification.confidence * 100)|round }}%)
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
                             <div class="col-md-4">
-                                {% if video.classification in ['theft', 'burglary', 'robbery', 'assault', 'weapon_detected'] %}
+                                {% if video.classification in ['shooting', 'kidnapping'] %}
+                                <div class="alert alert-danger border-danger">
+                                    <h6><i class="fas fa-exclamation-triangle me-2"></i>CRITICAL EMERGENCY</h6>
+                                    <p class="mb-0">IMMEDIATE police response dispatched. Emergency services activated.</p>
+                                </div>
+                                {% elif video.classification in ['theft', 'burglary', 'robbery', 'assault', 'weapon_detected'] %}
                                 <div class="alert alert-danger">
                                     <h6><i class="fas fa-exclamation-triangle me-2"></i>URGENT CRIME</h6>
                                     <p class="mb-0">Police and emergency services have been automatically notified.</p>
