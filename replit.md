@@ -10,6 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
 
+### Enhanced Duplicate Detection System (August 4, 2025)
+- **Frame-by-frame comparison**: Advanced perceptual hashing comparison of up to 20 video frames
+- **Comprehensive duplicate checking**: System now compares against ALL videos in database, not just time/location windows
+- **Smart canonical selection**: Quality-based selection using duration, resolution, file size, and upload time metrics
+- **Automatic file management**: Duplicate files automatically moved to `/uploads/duplicates/` folder with clear naming convention
+- **Multi-algorithm similarity**: Combines content hash, perceptual hash, frame comparison, and duration analysis
+- **Robust detection**: Detects duplicates even with different formats or slight quality differences
+- **Quality threshold**: Lowered similarity threshold to 0.75 for more sensitive detection
+
 ### Multi-Crime Classification Enhancement
 - **Added shooting detection**: Advanced pattern recognition with 95% confidence for firearm incidents
 - **Added kidnapping detection**: Multi-factor scoring system for abduction scenarios (65% threshold)
@@ -38,9 +47,12 @@ The system implements a sequential processing pipeline with four main agents:
    - Extracts technical metadata (duration, dimensions, FPS)
 
 2. **Duplicate Detector Agent** (`services/duplicate_detector.py`)
-   - Identifies duplicate videos using spatial and temporal proximity
-   - Uses configurable time windows (2 hours) and distance radius (1 mile)
-   - Implements hash-based similarity comparison with 0.85 threshold
+   - **Enhanced Frame Comparison**: Compares up to 20 frames per video using perceptual hashing
+   - **Comprehensive Database Scanning**: Checks against ALL videos in database for thorough duplicate detection
+   - **Multi-Algorithm Similarity**: Combines content hash, perceptual hash, frame analysis, and metadata comparison
+   - **Smart Quality Selection**: Automatically selects best quality video as canonical based on duration, resolution, and file size
+   - **Automatic File Management**: Moves duplicate files to `/uploads/duplicates/` folder with timestamped naming
+   - **Configurable Threshold**: Uses 0.75 similarity threshold for sensitive duplicate detection
 
 3. **AI Classifier Agent** (`services/ai_classifier.py`)
    - **Enhanced Multi-Crime Classification**: Now supports detection of multiple simultaneous crimes in a single video (e.g., shooting + kidnapping scenario)
