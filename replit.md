@@ -10,14 +10,23 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
 
+### Migration to Replit Environment (August 4, 2025)
+- **Successfully migrated**: Project fully migrated from Replit Agent to standard Replit environment
+- **Performance optimized**: Enhanced duplicate detection with timeout protection (15s max)
+- **Improved stability**: Optimized frame comparison to prevent worker timeouts
+- **Enhanced duplicate detection**: Now uses fast perceptual hashing with 8x8 hash size for speed
+- **Smart comparison limits**: Limited to 5 video comparisons max to prevent timeouts
+- **Timeout safeguards**: Added comprehensive timeout protection throughout video processing pipeline
+- **Lowered thresholds**: Hash similarity threshold reduced to 0.60 for better duplicate detection
+
 ### Enhanced Duplicate Detection System (August 4, 2025)
-- **Frame-by-frame comparison**: Advanced perceptual hashing comparison of up to 20 video frames
-- **Comprehensive duplicate checking**: System now compares against ALL videos in database, not just time/location windows
+- **Frame-by-frame comparison**: Optimized perceptual hashing comparison of up to 10 video frames
+- **Comprehensive duplicate checking**: System compares against ALL videos in database, with smart limits
 - **Smart canonical selection**: Quality-based selection using duration, resolution, file size, and upload time metrics
 - **Automatic file management**: Duplicate files automatically moved to `/uploads/duplicates/` folder with clear naming convention
 - **Multi-algorithm similarity**: Combines content hash, perceptual hash, frame comparison, and duration analysis
 - **Robust detection**: Detects duplicates even with different formats or slight quality differences
-- **Quality threshold**: Lowered similarity threshold to 0.75 for more sensitive detection
+- **Optimized performance**: Fast processing with early exit on high similarity detection
 
 ### Multi-Crime Classification Enhancement
 - **Added shooting detection**: Advanced pattern recognition with 95% confidence for firearm incidents

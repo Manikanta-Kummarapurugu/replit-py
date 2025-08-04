@@ -5,10 +5,11 @@ class Config:
     ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm'}
     MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
     
-    # Duplicate detection settings
+    # Duplicate detection settings - Enhanced for better detection
     DUPLICATE_TIME_WINDOW = 2 * 60 * 60  # 2 hours in seconds
     DUPLICATE_DISTANCE_RADIUS = 1609.34  # 1 mile in meters
-    HASH_SIMILARITY_THRESHOLD = 0.75  # Lowered for more sensitive frame-based detection
+    HASH_SIMILARITY_THRESHOLD = 0.60  # Lowered to 0.60 for more aggressive duplicate detection
+    FRAME_SIMILARITY_THRESHOLD = 0.70  # Specific threshold for frame-by-frame comparison
     
     # Classification confidence thresholds
     CLASSIFICATION_CONFIDENCE_THRESHOLD = 0.7
