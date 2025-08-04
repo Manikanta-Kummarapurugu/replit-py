@@ -1,47 +1,46 @@
 from app import db
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Float, Text, Boolean
 
 class Video(db.Model):
     __tablename__ = 'videos'
     
-    id = Column(Integer, primary_key=True)
-    filename = Column(String(255), nullable=False)
-    original_filename = Column(String(255), nullable=False)
-    file_path = Column(String(500), nullable=False)
-    file_size = Column(Integer, nullable=False)
-    duration = Column(Float, nullable=True)
-    upload_timestamp = Column(DateTime, default=datetime.utcnow)
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)
+    duration = db.Column(db.Float, nullable=True)
+    upload_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Metadata
-    video_hash = Column(String(128), nullable=True)
-    perceptual_hash = Column(String(128), nullable=True)
-    gps_latitude = Column(Float, nullable=True)
-    gps_longitude = Column(Float, nullable=True)
-    width = Column(Integer, nullable=True)
-    height = Column(Integer, nullable=True)
-    fps = Column(Float, nullable=True)
+    video_hash = db.Column(db.String(128), nullable=True)
+    perceptual_hash = db.Column(db.String(128), nullable=True)
+    gps_latitude = db.Column(db.Float, nullable=True)
+    gps_longitude = db.Column(db.Float, nullable=True)
+    width = db.Column(db.Integer, nullable=True)
+    height = db.Column(db.Integer, nullable=True)
+    fps = db.Column(db.Float, nullable=True)
     
     # Processing status
-    status = Column(String(50), default='processing')  # processing, completed, failed
-    is_duplicate = Column(Boolean, default=False)
-    canonical_video_id = Column(Integer, nullable=True)
-    duplicate_group_id = Column(String(128), nullable=True)
+    status = db.Column(db.String(50), default='processing')  # processing, completed, failed
+    is_duplicate = db.Column(db.Boolean, default=False)
+    canonical_video_id = db.Column(db.Integer, nullable=True)
+    duplicate_group_id = db.Column(db.String(128), nullable=True)
     
     # Classification results
-    classification = Column(String(100), nullable=True)
-    confidence_score = Column(Float, nullable=True)
-    multiple_classifications = Column(Text, nullable=True)  # JSON string for multiple crimes
-    detected_objects = Column(Text, nullable=True)  # JSON string
-    detected_people_count = Column(Integer, nullable=True)
+    classification = db.Column(db.String(100), nullable=True)
+    confidence_score = db.Column(db.Float, nullable=True)
+    multiple_classifications = db.Column(db.Text, nullable=True)  # JSON string for multiple crimes
+    detected_objects = db.Column(db.Text, nullable=True)  # JSON string
+    detected_people_count = db.Column(db.Integer, nullable=True)
     
     # Content moderation
-    is_inappropriate = Column(Boolean, default=False)
-    moderation_flags = Column(Text, nullable=True)  # JSON string
+    is_inappropriate = db.Column(db.Boolean, default=False)
+    moderation_flags = db.Column(db.Text, nullable=True)  # JSON string
     
     # User tracking
-    user_ip = Column(String(45), nullable=True)
-    user_agent = Column(String(500), nullable=True)
+    user_ip = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(500), nullable=True)
     
     def __repr__(self):
         return f'<Video {self.filename}>'
@@ -49,13 +48,13 @@ class Video(db.Model):
 class UserWarning(db.Model):
     __tablename__ = 'user_warnings'
     
-    id = Column(Integer, primary_key=True)
-    user_ip = Column(String(45), nullable=False)
-    warning_count = Column(Integer, default=0)
-    last_warning = Column(DateTime, nullable=True)
-    is_banned = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id = db.Column(db.Integer, primary_key=True)
+    user_ip = db.Column(db.String(45), nullable=False)
+    warning_count = db.Column(db.Integer, default=0)
+    last_warning = db.Column(db.DateTime, nullable=True)
+    is_banned = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def __repr__(self):
         return f'<UserWarning {self.user_ip}: {self.warning_count}>'
@@ -63,13 +62,13 @@ class UserWarning(db.Model):
 class ProcessingLog(db.Model):
     __tablename__ = 'processing_logs'
     
-    id = Column(Integer, primary_key=True)
-    video_id = Column(Integer, nullable=False)
-    step = Column(String(100), nullable=False)  # ingestion, duplicate_detection, classification, etc.
-    status = Column(String(50), nullable=False)  # started, completed, failed
-    message = Column(Text, nullable=True)
-    processing_time = Column(Float, nullable=True)  # seconds
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    id = db.Column(db.Integer, primary_key=True)
+    video_id = db.Column(db.Integer, nullable=False)
+    step = db.Column(db.String(100), nullable=False)  # ingestion, duplicate_detection, classification, etc.
+    status = db.Column(db.String(50), nullable=False)  # started, completed, failed
+    message = db.Column(db.Text, nullable=True)
+    processing_time = db.Column(db.Float, nullable=True)  # seconds
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
         return f'<ProcessingLog {self.video_id}: {self.step}>'
@@ -77,12 +76,12 @@ class ProcessingLog(db.Model):
 class Alert(db.Model):
     __tablename__ = 'alerts'
     
-    id = Column(Integer, primary_key=True)
-    video_id = Column(Integer, nullable=False)
-    alert_type = Column(String(100), nullable=False)  # urgent_crime, people_crowd, etc.
-    recipient_type = Column(String(100), nullable=False)  # police, community, etc.
-    message = Column(Text, nullable=False)
-    sent_at = Column(DateTime, default=datetime.utcnow)
+    id = db.Column(db.Integer, primary_key=True)
+    video_id = db.Column(db.Integer, nullable=False)
+    alert_type = db.Column(db.String(100), nullable=False)  # urgent_crime, people_crowd, etc.
+    recipient_type = db.Column(db.String(100), nullable=False)  # police, community, etc.
+    message = db.Column(db.Text, nullable=False)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
         return f'<Alert {self.alert_type} for video {self.video_id}>'
