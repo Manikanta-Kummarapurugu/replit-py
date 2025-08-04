@@ -8,7 +8,7 @@ class Config:
     # Duplicate detection settings
     DUPLICATE_TIME_WINDOW = 2 * 60 * 60  # 2 hours in seconds
     DUPLICATE_DISTANCE_RADIUS = 1609.34  # 1 mile in meters
-    HASH_SIMILARITY_THRESHOLD = 0.85
+    HASH_SIMILARITY_THRESHOLD = 0.75  # Lowered for more sensitive frame-based detection
     
     # Classification confidence thresholds
     CLASSIFICATION_CONFIDENCE_THRESHOLD = 0.7
