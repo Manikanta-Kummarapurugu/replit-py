@@ -118,15 +118,44 @@ def process_video_pipeline(video_id):
         detector = DuplicateDetector()
         detector.detect_duplicates(video_id)
         
-        # Step 4: AI classification (only for non-duplicates or canonical videos)
+        # Step 4: AI classification (only for non-duplicates or canonical videos) - with timeout protection
         video = Video.query.get(video_id)
         if video and (not video.is_duplicate or video.canonical_video_id is None):
-            classifier = AIClassifier()
-            classifier.classify_video(video_id)
-            
-            # Step 5: Alert generation
-            alert_generator = AlertGenerator()
-            alert_generator.generate_alerts(video_id)
+            try:
+                classifier = AIClassifier()
+                
+                # Set processing timeout to prevent worker timeout
+                import signal
+                def timeout_handler(signum, frame):
+                    raise TimeoutError("Classification timeout")
+                
+                old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(20)  # 20 second timeout
+                
+                try:
+                    classifier.classify_video(video_id)
+                except TimeoutError:
+                    logger.warning(f"Classification timed out for video {video_id}, using fallback")
+                    # Quick fallback classification
+                    video.category = 'other'
+                    video.confidence = 0.5
+                    video.classification = 'timeout_fallback'
+                    db.session.commit()
+                finally:
+                    signal.alarm(0)
+                    signal.signal(signal.SIGALRM, old_handler)
+                
+                # Step 5: Alert generation (quick)
+                alert_generator = AlertGenerator()
+                alert_generator.generate_alerts(video_id)
+                
+            except Exception as e:
+                logger.error(f"Error in classification step: {str(e)}")
+                # Set basic classification and continue
+                video.category = 'other'
+                video.confidence = 0.5
+                video.classification = 'error_fallback'
+                db.session.commit()
         
         # Update status
         if video:
