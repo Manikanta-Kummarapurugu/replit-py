@@ -101,6 +101,41 @@
     padding: 0.75rem;
 }
 
+/* Drop zone styling */
+#dropZone {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+#dropZone:hover {
+    border-color: #007bff !important;
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+#dropZone.drag-over {
+    border-color: #007bff !important;
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+#dropZone .fa-cloud-upload-alt {
+    transition: color 0.3s ease;
+}
+
+#dropZone:hover .fa-cloud-upload-alt {
+    color: #007bff !important;
+}
+
+/* File selected state */
+#dropZone.file-selected {
+    border-color: #28a745 !important;
+    background-color: rgba(40, 167, 69, 0.05);
+}
+
+#dropZone.file-selected .fa-cloud-upload-alt {
+    color: #28a745 !important;
+}
+
 /* Badge spacing */
 .badge + .badge {
     margin-left: 0.25rem;

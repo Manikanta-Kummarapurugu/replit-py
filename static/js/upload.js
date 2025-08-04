@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (file.size > maxSize) {
                 alert('File size exceeds 500MB limit. Please select a smaller file.');
                 this.value = '';
+                dropZone.classList.remove('file-selected');
                 return;
             }
 
@@ -26,13 +27,26 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!allowedTypes.includes(file.type)) {
                 alert('Invalid file type. Please select a valid video file.');
                 this.value = '';
+                dropZone.classList.remove('file-selected');
                 return;
             }
 
-            // Update button text with file info
+            // Update UI for selected file
+            updateFileSelected(file);
             updateButtonText(file);
+        } else {
+            dropZone.classList.remove('file-selected');
         }
     });
+
+    function updateFileSelected(file) {
+        dropZone.classList.add('file-selected');
+        const iconElement = dropZone.querySelector('.fa-cloud-upload-alt');
+        const textElement = dropZone.querySelector('p');
+        
+        iconElement.className = 'fas fa-check-circle fa-3x text-success mb-3';
+        textElement.innerHTML = `<strong>${file.name}</strong><br>Ready to upload (${formatFileSize(file.size)})`;
+    }
 
     // Form submission handling
     uploadForm.addEventListener('submit', function(e) {
@@ -94,21 +108,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Drag and drop functionality
-    const formBody = uploadForm.querySelector('.card-body');
+    const dropZone = document.getElementById('dropZone');
     
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        formBody.addEventListener(eventName, preventDefaults, false);
+        dropZone.addEventListener(eventName, preventDefaults, false);
     });
 
     ['dragenter', 'dragover'].forEach(eventName => {
-        formBody.addEventListener(eventName, highlight, false);
+        dropZone.addEventListener(eventName, highlight, false);
     });
 
     ['dragleave', 'drop'].forEach(eventName => {
-        formBody.addEventListener(eventName, unhighlight, false);
+        dropZone.addEventListener(eventName, unhighlight, false);
     });
 
-    formBody.addEventListener('drop', handleDrop, false);
+    dropZone.addEventListener('drop', handleDrop, false);
+    dropZone.addEventListener('click', function() {
+        videoInput.click();
+    });
 
     function preventDefaults(e) {
         e.preventDefault();
@@ -116,13 +133,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function highlight() {
-        formBody.classList.add('border-primary');
-        formBody.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+        dropZone.classList.add('drag-over');
     }
 
     function unhighlight() {
-        formBody.classList.remove('border-primary');
-        formBody.style.backgroundColor = '';
+        dropZone.classList.remove('drag-over');
     }
 
     function handleDrop(e) {
