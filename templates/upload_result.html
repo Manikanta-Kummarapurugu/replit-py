@@ -248,10 +248,18 @@
                                 {% endif %}
                             </div>
                         {% else %}
+                            {% set duplicate_log = logs|selectattr('step', 'equalto', 'duplicate_detection')|first %}
+                            {% if duplicate_log and 'duplicate(s)' in duplicate_log.message and not 'No duplicates' in duplicate_log.message %}
+                            <div class="alert alert-warning">
+                                <h6><i class="fas fa-copy me-2"></i>Duplicates Found</h6>
+                                <p class="mb-0">{{ duplicate_log.message }}. This video was selected as the canonical version (best quality).</p>
+                            </div>
+                            {% else %}
                             <div class="alert alert-success">
                                 <h6><i class="fas fa-check-circle me-2"></i>Original Content</h6>
                                 <p class="mb-0">This video is unique and has been marked as the canonical version.</p>
                             </div>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
