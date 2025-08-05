@@ -70,8 +70,14 @@ class DuplicateDetector:
                     })
             
             if duplicates:
-                self._handle_duplicates(video, duplicates)
+                is_duplicate = self._handle_duplicates(video, duplicates)
                 message = f"Found {len(duplicates)} duplicate(s)"
+                
+                # If current video is a duplicate, update its status immediately
+                if is_duplicate:
+                    video.status = 'duplicate'
+                    db.session.commit()
+                    logger.info(f"Video {video_id} marked as duplicate")
             else:
                 message = "No duplicates detected"
             
@@ -343,6 +349,7 @@ class DuplicateDetector:
             group_id = f"dup_{canonical.id}_{int(datetime.now().timestamp())}"
             
             duplicates_moved = 0
+            is_current_video_duplicate = False
             
             # Handle each duplicate video
             for dup_video in all_duplicates:
@@ -354,6 +361,10 @@ class DuplicateDetector:
                         dup_video.duplicate_group_id = group_id
                         duplicates_moved += 1
                         logger.info(f"Moved duplicate video {dup_video.id} ({dup_video.filename}) to duplicates folder")
+                        
+                        # Check if the current video is the one being marked as duplicate
+                        if dup_video.id == video.id:
+                            is_current_video_duplicate = True
                     else:
                         logger.error(f"Failed to move duplicate video {dup_video.id} to duplicates folder")
                 else:
@@ -364,11 +375,12 @@ class DuplicateDetector:
             db.session.commit()
             
             logger.info(f"Processed duplicate group: {duplicates_moved} duplicates moved, canonical video: {canonical.id}")
+            return is_current_video_duplicate
             
         except Exception as e:
             logger.error(f"Error handling duplicates: {str(e)}")
             db.session.rollback()
-            raise
+            return False
     
     def _select_canonical_video(self, videos):
         """Select the best video as canonical based on quality metrics"""
