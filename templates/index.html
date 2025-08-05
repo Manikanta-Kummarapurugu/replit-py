@@ -26,6 +26,9 @@
                 <span class="btn btn-primary">
                     <i class="fas fa-th me-2"></i>Video Gallery
                 </span>
+                <button class="btn btn-outline-success ms-2" onclick="reclassifyAll()">
+                    <i class="fas fa-magic me-2"></i>Re-classify All Videos
+                </button>
                 {% else %}
                 <span class="btn btn-primary me-2">
                     <i class="fas fa-upload me-2"></i>Upload Videos
@@ -143,6 +146,9 @@
                         <div class="mt-2">
                             <button class="btn btn-sm btn-outline-info" onclick="testDuplicateDetection({{ video.id }})">
                                 <i class="fas fa-play me-1"></i>Test Detection
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning ms-1" onclick="reclassifyVideo({{ video.id }})">
+                                <i class="fas fa-refresh me-1"></i>Re-classify
                             </button>
                         </div>
                     </div>
@@ -469,6 +475,68 @@
         }
         
         return html;
+    }
+    
+    function reclassifyVideo(videoId) {
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+        button.disabled = true;
+        
+        fetch(`/reclassify_video/${videoId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Video re-classified as: ${data.new_category} (${(data.confidence * 100).toFixed(1)}% confidence)`);
+                    location.reload(); // Refresh to show new classification
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                alert(`Error: ${error.message}`);
+            })
+            .finally(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+    }
+    
+    function reclassifyAll() {
+        if (!confirm('This will re-classify ALL videos with the updated AI logic. This may take a while. Continue?')) {
+            return;
+        }
+        
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing All Videos...';
+        button.disabled = true;
+        
+        fetch('/reclassify_all')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let message = `Re-classified ${data.total_videos} videos:\n\n`;
+                    data.results.forEach(result => {
+                        if (result.error) {
+                            message += `❌ ${result.video_id}: Error - ${result.error}\n`;
+                        } else {
+                            message += `✅ ${result.filename}: ${result.old_category} → ${result.new_category} (${(result.confidence * 100).toFixed(1)}%)\n`;
+                        }
+                    });
+                    alert(message);
+                    location.reload(); // Refresh to show new classifications
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                alert(`Error: ${error.message}`);
+            })
+            .finally(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
     }
     </script>
 </body>

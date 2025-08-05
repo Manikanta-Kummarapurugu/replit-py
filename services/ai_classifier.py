@@ -318,6 +318,17 @@ class AIClassifier:
             primary_category = 'no_crime'
             primary_confidence = 0.5
             
+            # FIRST: Check for legitimate activities (sports, exercise, etc.)
+            if self._detect_sports_activity(detection_results, video):
+                # Boxing, sports, or exercise activity detected - not a crime
+                return {
+                    'category': 'no_crime',
+                    'confidence': 0.9,
+                    'multiple_classifications': [{'type': 'sports_activity', 'confidence': 0.9}],
+                    'detected_objects': dict(objects),
+                    'people_count': people_count
+                }
+            
             # Shooting detection - highest priority
             if self._detect_shooting_patterns(detection_results, video):
                 classifications.append({'type': 'shooting', 'confidence': 0.95})
@@ -350,7 +361,7 @@ class AIClassifier:
                         primary_category = 'weapon_detected'
                         primary_confidence = 0.85
             
-            # Violence/Assault detection
+            # Violence/Assault detection (but exclude sports activities)
             if self._detect_violence_patterns(detection_results, video):
                 if not any(c['type'] in ['shooting', 'assault'] for c in classifications):
                     classifications.append({'type': 'assault', 'confidence': 0.87})
@@ -365,10 +376,10 @@ class AIClassifier:
                     primary_category = 'vehicle_crime'
                     primary_confidence = 0.85
             
-            # Theft/Burglary detection patterns
+            # Theft/Burglary detection patterns (more specific now)
             if self._detect_theft_patterns(detection_results, video):
                 theft_confidence = self._analyze_theft_behavior(detection_results, video)
-                if theft_confidence > 0.75:
+                if theft_confidence > 0.8:  # Raised threshold for theft
                     classifications.append({'type': 'theft', 'confidence': theft_confidence})
                     if primary_confidence < theft_confidence:
                         primary_category = 'theft'
@@ -439,45 +450,91 @@ class AIClassifier:
                 'people_count': 0
             }
     
+    def _detect_sports_activity(self, detection_results, video):
+        """Detect sports, boxing, exercise activities that are NOT crimes"""
+        try:
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            
+            # Enhanced sports/exercise indicators (more comprehensive)
+            sports_keywords = ['boxing', 'boxer', 'sport', 'exercise', 'gym', 'training', 'fitness', 'workout', 
+                             'ring', 'match', 'fight', 'martial', 'karate', 'judo', 'wrestling', 'mma',
+                             'kickboxing', 'taekwondo', 'tournament', 'competition', 'sparring']
+            
+            # Check video filename for sports indicators
+            filename = video.original_filename.lower() if video.original_filename else ""
+            logger.info(f"Checking sports activity for filename: {filename}")
+            
+            for keyword in sports_keywords:
+                if keyword in filename:
+                    logger.info(f"Sports keyword '{keyword}' found in filename - classifying as sports activity")
+                    return True
+            
+            # Boxing/fighting sports pattern detection
+            if people_count >= 1:  # Even single person can be sports (training, shadowboxing)
+                # Duration typical of sports/training (longer than quick crimes)
+                if video.duration and 8 < video.duration < 600:  # 8s to 10min (broader range)
+                    # Check for sports equipment or controlled environment
+                    sports_objects = ['glove', 'equipment', 'mat', 'ring', 'gym', 'arena']
+                    if any(obj in objects for obj in sports_objects):
+                        logger.info(f"Sports objects detected: {objects} - classifying as sports activity")
+                        return True
+                    
+                    # Pattern: organized activity (not random violence)
+                    # Boxing videos often have consistent action patterns
+                    if people_count >= 2:
+                        logger.info(f"Multiple people ({people_count}) with sports duration ({video.duration}s) - likely sports activity")
+                        return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting sports activity: {str(e)}")
+            return False
+    
     def _detect_theft_patterns(self, detection_results, video):
-        """Detect theft/stealing behavior patterns"""
+        """Detect theft/stealing behavior patterns - MORE SPECIFIC"""
         try:
             objects = detection_results['objects']
             people_count = detection_results['people_count']
             vehicles = detection_results['vehicles']
             
-            # Common theft indicators - expanded list
-            theft_indicators = [
-                'bag', 'purse', 'backpack', 'handbag', 'suitcase', 'briefcase',
-                'laptop', 'phone', 'wallet', 'jewelry', 'package', 'box',
-                'electronics', 'camera', 'tablet', 'headphones'
-            ]
+            # Must have multiple specific theft indicators (not just one)
+            theft_score = 0
             
-            # Vehicle theft indicators
-            vehicle_theft_indicators = [
-                'car', 'vehicle', 'auto', 'truck', 'van', 'suv'
-            ]
+            # Specific theft scenarios (require combination of factors)
+            high_value_items = ['laptop', 'phone', 'wallet', 'jewelry', 'electronics', 'camera', 'tablet']
+            containers = ['bag', 'purse', 'backpack', 'package', 'box', 'suitcase']
             
-            # High confidence theft patterns
+            # SCENARIO 1: Person with high-value items AND suspicious timing/location
             if people_count > 0:
-                # People with valuable objects (strong theft indicator)
-                if any(item in objects for item in theft_indicators):
-                    return True
+                has_valuables = any(item in objects for item in high_value_items)
+                has_containers = any(item in objects for item in containers)
                 
-                # Vehicle-related theft (people near vehicles)
-                if vehicles or any(vehicle in objects for vehicle in vehicle_theft_indicators):
-                    # Vehicle present with people - high likelihood of vehicle crime
-                    return True
+                if has_valuables and has_containers:
+                    theft_score += 2  # Strong indicator
                 
-                # Quick actions suggesting theft
-                if video.duration and video.duration < 45:
-                    return True
+                # Suspicious timing (very early morning or late night)
+                if video.upload_timestamp.hour < 5 or video.upload_timestamp.hour > 23:
+                    theft_score += 1
                 
-                # Night time activity with people (suspicious timing)
-                if video.upload_timestamp.hour < 6 or video.upload_timestamp.hour > 22:
-                    return True
+                # Quick grab-and-go actions (but not sports duration)
+                if video.duration and 5 < video.duration < 20:  # Very specific quick theft window
+                    theft_score += 1
+                
+                # Multiple people with items suggests coordinated theft
+                if people_count > 1 and (has_valuables or has_containers):
+                    theft_score += 1
             
-            return False
+            # SCENARIO 2: Vehicle theft (people breaking into cars)
+            if vehicles and people_count > 0:
+                # Must have suspicious activity, not just people near cars
+                has_tools = any(tool in objects for tool in ['tool', 'crowbar', 'hammer'])
+                if has_tools or (video.duration and video.duration < 30):
+                    theft_score += 2
+            
+            # Require at least 3 points for theft classification
+            return theft_score >= 3
             
         except Exception as e:
             logger.error(f"Error detecting theft patterns: {str(e)}")

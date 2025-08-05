@@ -372,3 +372,75 @@ def test_duplicate_detection(video_id):
         logger.error(f"Error testing duplicate detection for video {video_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route("/reclassify_video/<int:video_id>")
+def reclassify_video(video_id):
+    """Re-classify a video with the updated AI logic"""
+    try:
+        from flask import jsonify
+        from services.ai_classifier import AIClassifier
+        
+        video = Video.query.get_or_404(video_id)
+        
+        # Re-run classification with new logic
+        classifier = AIClassifier()
+        classifier.classify_video(video_id)
+        
+        # Refresh video from database to get updated classification
+        db.session.refresh(video)
+        
+        result = {
+            'success': True,
+            'video_id': video_id,
+            'old_category': video.classification,
+            'new_category': video.classification,
+            'confidence': video.confidence_score,
+            'message': f'Video re-classified as: {video.classification} ({(video.confidence_score * 100):.1f}% confidence)'
+        }
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error re-classifying video {video_id}: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route("/reclassify_all")
+def reclassify_all():
+    """Re-classify all videos with the updated AI logic"""
+    try:
+        from flask import jsonify
+        from services.ai_classifier import AIClassifier
+        
+        all_videos = Video.query.all()
+        classifier = AIClassifier()
+        results = []
+        
+        for video in all_videos:
+            try:
+                old_category = video.classification
+                classifier.classify_video(video.id)
+                db.session.refresh(video)
+                
+                results.append({
+                    'video_id': video.id,
+                    'filename': video.original_filename,
+                    'old_category': old_category,
+                    'new_category': video.classification,
+                    'confidence': video.confidence_score
+                })
+            except Exception as e:
+                logger.error(f"Error re-classifying video {video.id}: {str(e)}")
+                results.append({
+                    'video_id': video.id,
+                    'error': str(e)
+                })
+        
+        return jsonify({
+            'success': True,
+            'total_videos': len(all_videos),
+            'results': results
+        })
+        
+    except Exception as e:
+        logger.error(f"Error re-classifying all videos: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
