@@ -250,3 +250,61 @@ def server_error(e):
     logger.error(f"Server error: {str(e)}")
     flash('An internal error occurred. Please try again.', 'error')
     return redirect(url_for('index'))
+
+
+@app.route("/gallery")
+def video_gallery():
+    """Enhanced video gallery with AI classification results"""
+    try:
+        videos = Video.query.order_by(Video.upload_timestamp.desc()).all()
+        
+        # Statistics
+        total_videos = len(videos)
+        crime_videos = len([v for v in videos if v.classification and v.classification != "no_crime"])
+        duplicate_videos = len([v for v in videos if v.is_duplicate])
+        processed_today = len([v for v in videos if v.upload_timestamp.date() == datetime.now().date()])
+        
+        # Video data for JSON
+        videos_json = []
+        for video in videos:
+            videos_json.append({
+                "id": video.id,
+                "filename": video.filename,
+                "original_filename": video.original_filename,
+                "file_size": video.file_size,
+                "duration": video.duration,
+                "width": video.width,
+                "height": video.height,
+                "classification": video.classification,
+                "confidence_score": video.confidence_score,
+                "multiple_classifications": video.multiple_classifications,
+                "detected_people_count": video.detected_people_count,
+                "is_duplicate": video.is_duplicate,
+                "status": video.status,
+                "upload_timestamp": video.upload_timestamp.isoformat(),
+                "detected_objects": video.detected_objects
+            })
+        
+        return render_template("index.html", 
+                             gallery_mode=True,
+                             videos=videos,
+                             videos_json=videos_json,
+                             total_videos=total_videos,
+                             crime_videos=crime_videos,
+                             duplicate_videos=duplicate_videos,
+                             processed_today=processed_today)
+    except Exception as e:
+        logger.error(f"Gallery error: {str(e)}")
+        flash("Error loading video gallery", "error")
+        return redirect(url_for("index"))
+
+@app.route("/serve_video/<filename>")
+def serve_video(filename):
+    """Serve video files securely"""
+    try:
+        from flask import send_from_directory
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+    except Exception as e:
+        logger.error(f"Error serving video {filename}: {str(e)}")
+        return "Video not found", 404
+

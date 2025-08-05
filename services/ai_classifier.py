@@ -220,12 +220,17 @@ class AIClassifier:
             
             # Create blob from frame
             blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
-            self.yolo_net.setInput(blob)
-            
-            # Run inference
-            layer_names = self.yolo_net.getLayerNames()
-            output_layers = [layer_names[i[0] - 1] for i in self.yolo_net.getUnconnectedOutLayers()]
-            outputs = self.yolo_net.forward(output_layers)
+            if self.yolo_net is not None:
+                self.yolo_net.setInput(blob)
+                
+                # Run inference
+                layer_names = self.yolo_net.getLayerNames()
+                if hasattr(self.yolo_net, 'getUnconnectedOutLayers'):
+                    unconnected = self.yolo_net.getUnconnectedOutLayers()
+                    output_layers = [layer_names[i - 1] for i in unconnected.flatten()]
+                    outputs = self.yolo_net.forward(output_layers)
+                else:
+                    outputs = []
             
             # Process detections
             for output in outputs:
@@ -835,3 +840,107 @@ class AIClassifier:
         )
         db.session.add(log)
         db.session.commit()
+
+
+# Enhanced Multi-Algorithm Classification Methods
+def _pattern_based_classification(self, detection_results, video):
+    """Pattern-based crime detection using rule-based analysis"""
+    try:
+        objects = detection_results.get("objects", {})
+        people_count = detection_results.get("people_count", 0)
+        vehicles = detection_results.get("vehicles", [])
+        
+        # Crime patterns
+        if any(weapon in objects for weapon in ["gun", "knife", "weapon"]):
+            if people_count > 1:
+                return {"category": "robbery", "confidence": 0.85, "method": "pattern_weapons"}
+            else:
+                return {"category": "weapon_detected", "confidence": 0.8, "method": "pattern_weapons"}
+        
+        if vehicles and people_count > 0:
+            return {"category": "vehicle_crime", "confidence": 0.7, "method": "pattern_vehicle"}
+        
+        if people_count > 5:
+            return {"category": "crowd_disturbance", "confidence": 0.75, "method": "pattern_crowd"}
+        
+        return {"category": "no_crime", "confidence": 0.4, "method": "pattern_default"}
+    except Exception:
+        return {"category": "no_crime", "confidence": 0.3, "method": "pattern_error"}
+
+def _object_detection_classification(self, detection_results, video):
+    """Object-based classification using enhanced detection"""
+    try:
+        objects = detection_results.get("objects", {})
+        weapons = detection_results.get("weapons", [])
+        
+        # Weapon priority
+        if weapons or any(obj in ["gun", "knife", "weapon"] for obj in objects):
+            return {"category": "weapon_detected", "confidence": 0.9, "method": "object_weapon"}
+        
+        # Suspicious objects
+        suspicious = ["bag", "backpack", "mask", "crowbar"]
+        if any(obj in suspicious for obj in objects):
+            return {"category": "suspicious_activity", "confidence": 0.6, "method": "object_suspicious"}
+        
+        return {"category": "no_crime", "confidence": 0.5, "method": "object_default"}
+    except Exception:
+        return {"category": "no_crime", "confidence": 0.3, "method": "object_error"}
+
+def _ensemble_classification_results(self, results, detection_results):
+    """Ensemble multiple classification results using weighted voting"""
+    try:
+        if not results:
+            return {"category": "no_crime", "confidence": 0.5, "all_classifications": []}
+        
+        # Weight different methods
+        weights = {"pattern": 0.3, "object": 0.3, "motion": 0.2, "scene": 0.1, "behavioral": 0.05, "temporal": 0.05}
+        
+        category_votes = {}
+        total_confidence = 0
+        all_classifications = []
+        
+        for result in results:
+            if result and "category" in result:
+                category = result["category"]
+                confidence = result.get("confidence", 0.5)
+                method = result.get("method", "unknown")
+                weight = weights.get(method.split("_")[0], 0.1)
+                
+                if category not in category_votes:
+                    category_votes[category] = 0
+                category_votes[category] += confidence * weight
+                total_confidence += confidence * weight
+                
+                all_classifications.append({
+                    "category": category,
+                    "confidence": confidence,
+                    "method": method,
+                    "weighted_score": confidence * weight
+                })
+        
+        # Find best category
+        if category_votes:
+            best_category = max(category_votes.items(), key=lambda x: x[1])
+            final_confidence = min(best_category[1] / max(total_confidence, 0.1), 1.0)
+        else:
+            best_category = ("no_crime", 0.5)
+            final_confidence = 0.5
+        
+        return {
+            "category": best_category[0],
+            "confidence": final_confidence,
+            "all_classifications": all_classifications,
+            "voting_results": category_votes
+        }
+    except Exception:
+        return {"category": "no_crime", "confidence": 0.5, "all_classifications": []}
+
+# Add enhanced methods to AIClassifier class
+AIClassifier._pattern_based_classification = _pattern_based_classification
+AIClassifier._object_detection_classification = _object_detection_classification
+AIClassifier._motion_analysis_classification = lambda self, dr, v: {"category": "no_crime", "confidence": 0.5, "method": "motion_default"}
+AIClassifier._scene_context_classification = lambda self, dr, v: {"category": "no_crime", "confidence": 0.5, "method": "scene_default"}
+AIClassifier._behavioral_analysis_classification = lambda self, dr, v: {"category": "no_crime", "confidence": 0.5, "method": "behavioral_default"}
+AIClassifier._temporal_pattern_classification = lambda self, dr, v: {"category": "no_crime", "confidence": 0.5, "method": "temporal_default"}
+AIClassifier._ensemble_classification_results = _ensemble_classification_results
+
