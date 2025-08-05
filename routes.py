@@ -308,3 +308,67 @@ def serve_video(filename):
         logger.error(f"Error serving video {filename}: {str(e)}")
         return "Video not found", 404
 
+@app.route("/test_duplicate_detection/<int:video_id>")
+def test_duplicate_detection(video_id):
+    """Test duplicate detection for a specific video and return analysis"""
+    try:
+        from flask import jsonify
+        
+        video = Video.query.get_or_404(video_id)
+        
+        # Initialize duplicate detector to test
+        detector = DuplicateDetector()
+        
+        # Find all other videos to compare against
+        all_videos = Video.query.filter(Video.id != video_id).all()
+        
+        similar_videos = []
+        compared_count = 0
+        
+        # Test similarity with each video
+        for other_video in all_videos:
+            try:
+                similarity = detector._calculate_similarity(video, other_video)
+                compared_count += 1
+                
+                if similarity >= detector.similarity_threshold:
+                    similar_videos.append({
+                        'id': other_video.id,
+                        'filename': other_video.filename,
+                        'original_filename': other_video.original_filename,
+                        'upload_timestamp': other_video.upload_timestamp.isoformat(),
+                        'similarity': similarity,
+                        'file_size': other_video.file_size,
+                        'duration': other_video.duration
+                    })
+            except Exception as e:
+                logger.error(f"Error comparing videos {video_id} and {other_video.id}: {str(e)}")
+                continue
+        
+        # Sort by similarity (highest first)
+        similar_videos.sort(key=lambda x: x['similarity'], reverse=True)
+        
+        result = {
+            'current_video': {
+                'id': video.id,
+                'filename': video.filename,
+                'original_filename': video.original_filename,
+                'file_size': video.file_size,
+                'duration': video.duration,
+                'width': video.width,
+                'height': video.height,
+                'upload_timestamp': video.upload_timestamp.isoformat()
+            },
+            'is_duplicate': video.is_duplicate,
+            'compared_count': compared_count,
+            'threshold': detector.similarity_threshold,
+            'similar_videos': similar_videos[:5],  # Top 5 most similar
+            'total_similar': len(similar_videos)
+        }
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error testing duplicate detection for video {video_id}: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
