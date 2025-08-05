@@ -73,15 +73,25 @@ def upload_video():
             file.save(filepath)
             file_size = os.path.getsize(filepath)
             
-            # Create video record
-            video = Video(
-                filename=filename,
-                original_filename=secure_filename(file.filename),
-                file_path=filepath,
-                file_size=file_size,
-                user_ip=client_ip,
-                user_agent=request.headers.get('User-Agent', '')[:500]
-            )
+            # Create video record with better error handling
+            try:
+                video = Video()
+                video.filename = filename
+                video.original_filename = secure_filename(file.filename)
+                video.file_path = filepath
+                video.file_size = file_size
+                video.user_ip = client_ip
+                video.user_agent = request.headers.get('User-Agent', '')[:500] if request.headers.get('User-Agent') else ''
+            except Exception as e:
+                logger.error(f"Error creating video record: {str(e)}")
+                # Clean up uploaded file
+                if os.path.exists(filepath):
+                    try:
+                        os.remove(filepath)
+                    except Exception as cleanup_error:
+                        logger.error(f"Error cleaning up file: {str(cleanup_error)}")
+                flash('Error creating video record', 'error')
+                return redirect(url_for('index'))
             
             db.session.add(video)
             db.session.commit()

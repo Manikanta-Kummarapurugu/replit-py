@@ -376,6 +376,41 @@ class AIClassifier:
                     primary_category = 'vehicle_crime'
                     primary_confidence = 0.85
             
+            # Domestic violence detection - high priority
+            if self._detect_domestic_violence(detection_results, video):
+                classifications.append({'type': 'domestic_violence', 'confidence': 0.88})
+                if primary_confidence < 0.88:
+                    primary_category = 'domestic_violence'
+                    primary_confidence = 0.88
+            
+            # Shoplifting detection - retail specific
+            if self._detect_shoplifting(detection_results, video):
+                classifications.append({'type': 'shoplifting', 'confidence': 0.82})
+                if primary_confidence < 0.82:
+                    primary_category = 'shoplifting'
+                    primary_confidence = 0.82
+            
+            # Cyber crime detection - fraud and tech crimes
+            if self._detect_cyber_crime(detection_results, video):
+                classifications.append({'type': 'cyber_crime', 'confidence': 0.79})
+                if primary_confidence < 0.79:
+                    primary_category = 'cyber_crime'
+                    primary_confidence = 0.79
+            
+            # Public disturbance detection - riots, protests
+            if self._detect_public_disturbance(detection_results, video):
+                classifications.append({'type': 'public_disturbance', 'confidence': 0.83})
+                if primary_confidence < 0.83:
+                    primary_category = 'public_disturbance'
+                    primary_confidence = 0.83
+            
+            # Workplace violence detection
+            if self._detect_workplace_violence(detection_results, video):
+                classifications.append({'type': 'workplace_violence', 'confidence': 0.81})
+                if primary_confidence < 0.81:
+                    primary_category = 'workplace_violence'
+                    primary_confidence = 0.81
+            
             # Theft/Burglary detection patterns (more specific now)
             if self._detect_theft_patterns(detection_results, video):
                 theft_confidence = self._analyze_theft_behavior(detection_results, video)
@@ -621,6 +656,157 @@ class AIClassifier:
             
         except Exception as e:
             logger.error(f"Error detecting vehicle crime: {str(e)}")
+            return False
+    
+    def _detect_domestic_violence(self, detection_results, video):
+        """Detect domestic violence scenarios"""
+        try:
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            
+            # Domestic violence indicators
+            if people_count >= 2:
+                # Indoor environment with multiple people
+                indoor_indicators = ['chair', 'table', 'couch', 'bed', 'kitchen', 'room']
+                violence_indicators = ['struggle', 'grab', 'push', 'hit']
+                
+                # Check for indoor domestic environment
+                has_indoor_setting = any(item in objects for item in indoor_indicators)
+                
+                # Multiple people in indoor setting with longer duration
+                if has_indoor_setting and video.duration and 20 < video.duration < 300:
+                    return True
+                
+                # Evidence of physical altercation indoors
+                if has_indoor_setting and any(indicator in objects for indicator in violence_indicators):
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting domestic violence: {str(e)}")
+            return False
+    
+    def _detect_shoplifting(self, detection_results, video):
+        """Detect shoplifting in retail environments"""
+        try:
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            
+            # Retail environment indicators
+            retail_indicators = ['shelf', 'cart', 'basket', 'register', 'counter', 'aisle', 'store']
+            concealment_items = ['bag', 'pocket', 'jacket', 'purse', 'backpack']
+            merchandise = ['bottle', 'package', 'box', 'can', 'item']
+            
+            if people_count > 0:
+                has_retail_setting = any(item in objects for item in retail_indicators)
+                has_concealment = any(item in objects for item in concealment_items)
+                has_merchandise = any(item in objects for item in merchandise)
+                
+                # Person in retail setting with concealment and merchandise
+                if has_retail_setting and has_concealment and has_merchandise:
+                    # Quick actions typical of shoplifting
+                    if video.duration and 10 < video.duration < 120:
+                        return True
+                
+                # Multiple people in coordinated shoplifting
+                if people_count > 1 and has_retail_setting and has_merchandise:
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting shoplifting: {str(e)}")
+            return False
+    
+    def _detect_cyber_crime(self, detection_results, video):
+        """Detect cyber crimes and fraud"""
+        try:
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            
+            # Cyber crime indicators
+            tech_equipment = ['laptop', 'computer', 'phone', 'tablet', 'screen', 'keyboard']
+            fraud_items = ['card', 'document', 'paper', 'id', 'money']
+            
+            if people_count > 0:
+                has_tech = any(item in objects for item in tech_equipment)
+                has_fraud_items = any(item in objects for item in fraud_items)
+                
+                # Person with technology and suspicious documents/cards
+                if has_tech and has_fraud_items:
+                    # Longer sessions typical of cyber crimes
+                    if video.duration and 60 < video.duration < 1800:  # 1-30 minutes
+                        return True
+                
+                # Multiple people involved in fraud operation
+                if people_count > 1 and (has_tech or has_fraud_items):
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting cyber crime: {str(e)}")
+            return False
+    
+    def _detect_public_disturbance(self, detection_results, video):
+        """Detect public disturbances and riots"""
+        try:
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            
+            # Public disturbance indicators
+            if people_count > 5:  # Large groups
+                crowd_items = ['sign', 'banner', 'megaphone', 'bottle', 'stone']
+                public_spaces = ['street', 'park', 'plaza', 'building', 'sidewalk']
+                
+                has_crowd_items = any(item in objects for item in crowd_items)
+                has_public_space = any(item in objects for item in public_spaces)
+                
+                # Large crowd with protest/riot items in public spaces
+                if has_crowd_items or has_public_space:
+                    # Extended duration typical of public disturbances
+                    if video.duration and 120 < video.duration < 3600:  # 2min-1hour
+                        return True
+                
+                # Very large crowds are automatically concerning
+                if people_count > 20:
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting public disturbance: {str(e)}")
+            return False
+    
+    def _detect_workplace_violence(self, detection_results, video):
+        """Detect workplace violence scenarios"""
+        try:
+            objects = detection_results['objects']
+            people_count = detection_results['people_count']
+            
+            # Workplace indicators
+            workplace_items = ['desk', 'chair', 'computer', 'office', 'uniform', 'badge']
+            violence_escalation = ['argument', 'confrontation', 'aggression']
+            
+            if people_count >= 2:
+                has_workplace = any(item in objects for item in workplace_items)
+                
+                # Multiple people in workplace setting
+                if has_workplace:
+                    # Workplace confrontations often have specific duration
+                    if video.duration and 30 < video.duration < 600:  # 30s-10min
+                        return True
+                
+                # Business hours timing (workplace violence often during work)
+                if 8 <= video.upload_timestamp.hour <= 18:
+                    if has_workplace and people_count >= 3:
+                        return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting workplace violence: {str(e)}")
             return False
     
     def _detect_violence_patterns(self, detection_results, video):

@@ -18,8 +18,15 @@ class Config:
     # Warning system
     MAX_WARNINGS = 3
     
-    # Crime scene categories
+    # Crime scene categories - Expanded for comprehensive detection
     CRIME_CATEGORIES = {
+        'shooting': 'Shooting/Firearms',
+        'kidnapping': 'Kidnapping/Abduction',
+        'domestic_violence': 'Domestic Violence',
+        'shoplifting': 'Shoplifting/Retail Theft',
+        'cyber_crime': 'Cyber Crime/Fraud',
+        'public_disturbance': 'Public Disturbance/Riot',
+        'workplace_violence': 'Workplace Violence',
         'theft': 'Theft/Stealing',
         'burglary': 'Burglary/Break-in',
         'vehicle_crime': 'Vehicle Crime',

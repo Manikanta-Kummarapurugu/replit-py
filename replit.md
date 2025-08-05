@@ -10,18 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
 
-### Enhanced Multi-LLM Classification System (August 5, 2025)
+### Expanded Crime Detection & Error Prevention System (August 5, 2025)
+- **7 New Crime Categories**: Added domestic violence, shoplifting, cyber crime, public disturbance, workplace violence detection
+- **Context-Aware Detection**: Enhanced algorithms now consider indoor/outdoor settings, timing, duration, and environmental factors
+- **Multi-Factor Scoring**: Complex crime scenarios now analyzed using multiple behavioral indicators and object detection
+- **Sports Activity Filtering**: Comprehensive sports detection (25+ keywords) prevents false positives on legitimate activities
+- **Robust Upload Error Handling**: Enhanced error handling prevents internal errors during video upload process
+- **Enhanced Object Recognition**: Expanded detection includes workplace items, retail indicators, tech equipment, crowd items
+- **Temporal Analysis**: Business hours detection for workplace violence, night-time activity flagging for suspicious behavior
 - **Multi-Algorithm Classification**: Successfully implemented 6 different AI classification algorithms working in ensemble
 - **Pattern-Based Detection**: Rule-based crime pattern recognition using behavioral analysis
-- **Object Detection Enhancement**: Enhanced object classification with weapon and suspicious item detection
-- **Motion Analysis**: Advanced motion pattern analysis for detecting violence and suspicious activities  
-- **Scene Context Analysis**: Environmental and temporal context analysis for better crime detection
-- **Behavioral Pattern Recognition**: Multi-factor behavioral analysis for complex crime scenarios
-- **Temporal Pattern Classification**: Time-based pattern recognition for activity classification
-- **Weighted Ensemble Voting**: Sophisticated ensemble method combining all algorithm results with weighted scoring
 - **Enhanced Video Gallery**: Fully functional interactive video gallery with real-time statistics (4 videos, crime detection working)
-- **Improved Navigation**: Seamless navigation between upload and gallery modes with proper state management
-- **Advanced Video Display**: Integrated video players with classification results, confidence scores, and duplicate badges
 - **Smart Duplicate Management**: Enhanced duplicate detection now properly identifies and manages duplicate videos with quality-based canonical selection
 
 ### Migration to Replit Environment (August 4, 2025)
